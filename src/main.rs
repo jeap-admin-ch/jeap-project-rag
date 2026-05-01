@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use project_rag::mcp_server::RagMcpServer;
 use std::panic;
+use std::path::PathBuf;
 
 /// Project-RAG: RAG-based codebase indexing and semantic search MCP server
 #[derive(Parser)]
@@ -9,6 +10,14 @@ use std::panic;
 #[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "MCP server for semantic code search with RAG capabilities", long_about = None)]
 struct Cli {
+    /// Load the embedding model from a local directory instead of downloading.
+    /// Useful behind corporate proxies or for containerized deployments where
+    /// the model is baked into the image. Directory must contain model.onnx
+    /// (or model_quantized.onnx), tokenizer.json, config.json,
+    /// special_tokens_map.json, tokenizer_config.json.
+    #[arg(long, env = "PROJECT_RAG_MODEL_PATH", global = true)]
+    model_path: Option<PathBuf>,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -29,6 +38,16 @@ async fn main() -> Result<()> {
 
     // Parse CLI arguments
     let cli = Cli::parse();
+
+    // Propagate --model-path to the env so the downstream Config loader
+    // (which reads PROJECT_RAG_MODEL_PATH) sees it. clap's `env` attribute
+    // handles env -> CLI; this handles CLI -> env.
+    if let Some(path) = cli.model_path.as_ref() {
+        // SAFETY: set before any threads spawn that read this env var.
+        unsafe {
+            std::env::set_var("PROJECT_RAG_MODEL_PATH", path);
+        }
+    }
 
     // Handle commands
     match cli.command {
@@ -91,7 +110,14 @@ fn show_version_info() {
     println!("Embedding Model:");
     println!("  Model:           all-MiniLM-L6-v2");
     println!("  Dimensions:      384");
-    println!("  Provider:        FastEmbed (local, no API calls)");
+    match std::env::var("PROJECT_RAG_MODEL_PATH") {
+        Ok(p) if !p.trim().is_empty() => {
+            println!("  Provider:        FastEmbed (local files at {})", p);
+        }
+        _ => {
+            println!("  Provider:        FastEmbed (local, no API calls)");
+        }
+    }
     println!();
 
     // Configuration

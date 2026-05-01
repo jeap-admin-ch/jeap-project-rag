@@ -52,6 +52,14 @@ pub struct EmbeddingConfig {
     #[serde(default = "default_model_name")]
     pub model_name: String,
 
+    /// Optional local directory containing pre-downloaded model files.
+    /// When set, the model is loaded from disk instead of being downloaded
+    /// from HuggingFace. The directory must contain `model.onnx` (or
+    /// `model_quantized.onnx`), `tokenizer.json`, `config.json`,
+    /// `special_tokens_map.json`, and `tokenizer_config.json`.
+    #[serde(default)]
+    pub model_path: Option<PathBuf>,
+
     /// Batch size for embedding generation
     /// Smaller values allow faster cancellation response but may be less efficient
     #[serde(default = "default_batch_size")]
@@ -211,6 +219,7 @@ impl Default for EmbeddingConfig {
     fn default() -> Self {
         Self {
             model_name: default_model_name(),
+            model_path: None,
             batch_size: default_batch_size(),
             timeout_secs: default_embedding_timeout(),
             cancellation_check_interval: default_cancellation_check_interval(),
@@ -385,6 +394,13 @@ impl Config {
         // Embedding model
         if let Ok(model) = std::env::var("PROJECT_RAG_MODEL") {
             self.embedding.model_name = model;
+        }
+
+        // Local model path (skip download, load from disk)
+        if let Ok(path) = std::env::var("PROJECT_RAG_MODEL_PATH")
+            && !path.trim().is_empty()
+        {
+            self.embedding.model_path = Some(PathBuf::from(path));
         }
 
         // Batch size
