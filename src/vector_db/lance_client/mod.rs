@@ -295,8 +295,9 @@ impl VectorDatabase for LanceVectorDB {
         let batches =
             RecordBatchIterator::new(vec![empty_batch].into_iter().map(Ok), schema.clone());
 
+        let reader: Box<dyn arrow_array::RecordBatchReader + Send> = Box::new(batches);
         self.connection
-            .create_table(&self.table_name, Box::new(batches))
+            .create_table(&self.table_name, reader)
             .execute()
             .await
             .context("Failed to create table")?;
@@ -332,9 +333,10 @@ impl VectorDatabase for LanceVectorDB {
         let count = batch.num_rows();
 
         let batches = RecordBatchIterator::new(vec![batch].into_iter().map(Ok), schema);
+        let reader: Box<dyn arrow_array::RecordBatchReader + Send> = Box::new(batches);
 
         table
-            .add(Box::new(batches))
+            .add(reader)
             .execute()
             .await
             .context("Failed to add records to table")?;

@@ -35,4 +35,15 @@ fn main() {
     // Rerun if git HEAD changes
     println!("cargo:rerun-if-changed=.git/HEAD");
     println!("cargo:rerun-if-changed=.git/refs/heads");
+
+    // On Linux, the prebuilt onnxruntime binary (via fastembed → ort-sys) is
+    // built against glibc 2.38+ and references __isoc23_strtol/ll/ull. Provide
+    // shim symbols so the binary links on older glibc systems.
+    #[cfg(target_os = "linux")]
+    {
+        println!("cargo:rerun-if-changed=build_shims/glibc_compat.c");
+        cc::Build::new()
+            .file("build_shims/glibc_compat.c")
+            .compile("glibc_isoc23_compat");
+    }
 }
