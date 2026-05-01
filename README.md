@@ -291,6 +291,52 @@ Add to your Claude Desktop config:
 
 **Note**: Claude Code and Claude Desktop are different products with different configuration methods.
 
+### Configuring in GitHub Copilot CLI
+
+Inside a Copilot CLI session, run the interactive wizard:
+
+```
+/mcp add
+```
+
+Fill in:
+
+- **Name:** `project-rag`
+- **Command:** `/path/to/project-rag/target/release/project-rag`
+- **Args:** `--model-path /path/to/models/all-MiniLM-L6-v2` (omit if you want fastembed to download the model)
+- **Env:** `RUST_LOG=info`
+
+Or edit `~/.copilot/mcp-config.json` (global) or `.mcp.json` in the workspace root (project-local) directly:
+
+```json
+{
+  "mcpServers": {
+    "project-rag": {
+      "command": "/path/to/project-rag/target/release/project-rag",
+      "args": ["--model-path", "/path/to/models/all-MiniLM-L6-v2"],
+      "env": {
+        "RUST_LOG": "info"
+      }
+    }
+  }
+}
+```
+
+Then in a Copilot CLI session:
+
+```
+/mcp reload
+/mcp show project-rag
+```
+
+For a one-shot test without persisting:
+
+```bash
+copilot --additional-mcp-config @/path/to/mcp-config.json
+```
+
+**Limitation**: Copilot CLI currently only supports MCP **tools**, not prompts. The 9 tools (`index_codebase`, `query_codebase`, `find_definition`, etc.) work normally, but the slash commands (`/project:index`, `/project:query`, ...) that Claude Code exposes as prompts will not be available. You can still ask Copilot in natural language ("index this repo", "find references to FastEmbedManager") and it will pick the right tool.
+
 ### Example Tool Usage
 
 **Index a codebase:**
