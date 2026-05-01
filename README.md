@@ -414,6 +414,26 @@ project-rag/
 ### Environment Variables
 - `RUST_LOG` - Set logging level (options: `error`, `warn`, `info`, `debug`, `trace`)
   - Example: `RUST_LOG=debug cargo run`
+  - Module filters are also supported, e.g. `RUST_LOG=project_rag=debug,lance=warn,ort=warn`
+  - Logs are written to **stderr** (stdout is reserved for MCP JSON-RPC traffic), so it's safe to enable when running as an MCP server.
+
+### Enabling Logs When Running as an MCP Server
+
+When registering `project-rag` as an MCP server in Claude Code, pass `RUST_LOG`
+via the env so you get useful logs without corrupting the protocol stream:
+
+```bash
+claude mcp add project-rag \
+  --env RUST_LOG=info \
+  -- /path/to/project-rag/target/release/project-rag \
+     --model-path ~/models/all-MiniLM-L6-v2
+```
+
+(Some Claude Code versions use `-e KEY=VALUE` instead of `--env KEY=VALUE` —
+run `claude mcp add --help` to confirm.)
+
+View the captured stderr with the `/mcp` command in Claude Code, or read the
+log files under `~/.cache/claude-cli-nodejs/<project>/mcp-logs-project-rag/`.
 
 ### Qdrant Configuration
 - Currently hardcoded to `http://localhost:6334`
