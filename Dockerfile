@@ -22,7 +22,6 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     openssl-devel \
     ca-certificates \
     git \
-    curl \
     tar \
     gzip \
     && dnf clean all
