@@ -1,0 +1,27 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# Git
+.git/
+.git*
+
+# Docker
+Dockerfile
+.dockerignore
+
+# CI
+Jenkinsfile
+
+# Docs (not needed for build)
+docs/
+/*.md
+LICENSE
+
+# Local data / caches
+.fastembed_cache/
+qdrant_data/
+.usearch_data/
+.lancedb/
+.cache/
