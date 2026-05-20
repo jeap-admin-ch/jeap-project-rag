@@ -55,4 +55,13 @@ COPY --from=builder /projectrag/target/release/project-rag /usr/local/bin/projec
 
 USER raguser
 
+# Pre-download embedding model to ensure it's available at runtime without requiring network access.
+ENV PROJECT_RAG_MODEL_PATH=/home/raguser/models/all-MiniLM-L6-v2
+RUN mkdir -p "$PROJECT_RAG_MODEL_PATH" \
+     && cd "$PROJECT_RAG_MODEL_PATH" \
+     && BASE=https://huggingface.co/Qdrant/all-MiniLM-L6-v2-onnx/resolve/main \
+     && for f in model.onnx tokenizer.json config.json special_tokens_map.json tokenizer_config.json; do \
+            curl -fL -o "$f" "$BASE/$f"; \
+        done
+
 ENTRYPOINT ["/usr/local/bin/project-rag"]
