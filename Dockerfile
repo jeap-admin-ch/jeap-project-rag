@@ -1,13 +1,6 @@
-FROM repo.bit.admin.ch:8444/amazonlinux:2023 AS builder
+FROM amazonlinux:2023 AS builder
 
 LABEL maintainer="Federal Office of Information Technology, Systems and Telecommunication <jeap@bit.admin.ch>"
-
-################################### Certs ###################################
-
-COPY --from=bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/ca-bundle:latest /certs/ /etc/pki/ca-trust/source/anchors/
-RUN update-ca-trust
-
-################################### End Certs ###################################
 
 # Build dependencies required by this project.
 RUN dnf install -y --setopt=install_weak_deps=False \
@@ -41,11 +34,9 @@ COPY . .
 RUN source /home/raguser/.cargo/env && \
     cargo build --release
 
-FROM repo.bit.admin.ch:8444/amazoncorretto:25-al2023 AS runtime
+FROM amazoncorretto:25-al2023 AS runtime
 
-COPY --from=bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/ca-bundle:latest /certs/ /etc/pki/ca-trust/source/anchors/
-RUN update-ca-trust && \
-    dnf install -y shadow-utils openssl-libs ca-certificates && \
+RUN dnf install -y shadow-utils openssl-libs ca-certificates && \
     groupadd -r raguser && \
     useradd -r -g raguser -m -d /home/raguser raguser && \
     mkdir -p /projectrag && chown -R raguser:raguser /projectrag && \
