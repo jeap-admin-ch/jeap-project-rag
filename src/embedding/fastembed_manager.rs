@@ -6,7 +6,7 @@ use fastembed::{
 };
 use std::fs;
 use std::path::Path;
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 
 /// FastEmbed-based embedding provider using all-MiniLM-L6-v2
 ///
@@ -44,8 +44,19 @@ impl FastEmbedManager {
         options.model_name = model;
         options.show_download_progress = true;
 
-        let embedding_model =
-            TextEmbedding::try_new(options).context("Failed to initialize FastEmbed model")?;
+        // Serialize initialization. fastembed's on-disk model cache uses a lock file while
+        // downloading a model for the first time, and that lock acquisition fails fast rather
+        // than waiting - so two threads racing to download the same not-yet-cached model at once
+        // can fail with "Lock acquisition failed" instead of one of them just waiting its turn.
+        // This bit the test suite, which constructs many embedding providers in parallel. A
+        // single process-wide mutex around initialization is enough: once any caller finishes
+        // downloading a given model, every later caller just reads the now-cached file, no lock
+        // needed. Held only for try_new() itself, not for any embedding calls afterwards.
+        static INIT_LOCK: Mutex<()> = Mutex::new(());
+        let embedding_model = {
+            let _guard = INIT_LOCK.lock().unwrap();
+            TextEmbedding::try_new(options).context("Failed to initialize FastEmbed model")?
+        };
 
         Ok(Self {
             model: RwLock::new(embedding_model),

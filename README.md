@@ -241,6 +241,27 @@ cargo build --release --no-default-features --features qdrant-backend
 # The binary will be at target/release/project-rag
 ```
 
+### ONNX Runtime (required at runtime)
+
+Embeddings use `fastembed`'s `ort-load-dynamic` feature, which loads ONNX Runtime at *runtime*
+via `dlopen` instead of statically linking it at build time (a prebuilt static binary needs a
+newer libstdc++ than many environments provide). This means the binary builds fine without it,
+but fails as soon as it tries to generate an embedding unless `libonnxruntime.so` is installed
+and discoverable:
+
+```bash
+# Download and install the shared library (same version the Dockerfile/CI use)
+curl -fsSL -o /tmp/onnxruntime.tgz \
+  https://github.com/microsoft/onnxruntime/releases/download/v1.28.0/onnxruntime-linux-x64-1.28.0.tgz
+tar -xzf /tmp/onnxruntime.tgz -C /tmp
+sudo cp -P /tmp/onnxruntime-linux-x64-1.28.0/lib/libonnxruntime.so* /usr/local/lib/
+sudo ldconfig
+rm -rf /tmp/onnxruntime.tgz /tmp/onnxruntime-linux-x64-1.28.0
+
+# Point project-rag at it (skip if it resolves via the default linker search path already)
+export ORT_DYLIB_PATH=/usr/local/lib/libonnxruntime.so
+```
+
 ## Usage
 
 ### Running as MCP Server
@@ -693,7 +714,7 @@ The BM25 (Tantivy) index uses additional file-based locks to prevent concurrent 
 **Stale Lock Detection:**
 - Lock files are checked for staleness (>5 minutes old)
 - Uses file modification timestamps to detect crashed processes
-- Fresh locks (<5 minutes) are treated as active
+- Fresh locks (under 5 minutes) are treated as active
 
 **Automatic Recovery:**
 - When indexing fails with a lock error, the system checks if locks are stale
@@ -876,7 +897,7 @@ RUST_LOG=trace cargo run
   - Mitigation: Use incremental updates
 
 - **Memory**: Very large indexes (1M+ chunks) may require significant RAM
-  - Typical project (5k files) uses <500MB total
+  - Typical project (5k files) uses under 500MB total
 
 ## Troubleshooting
 
