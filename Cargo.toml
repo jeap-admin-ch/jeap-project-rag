@@ -26,7 +26,7 @@ rmcp = { version = "0.8", features = ["server", "transport-io", "macros"] }
 schemars = "1.0"
 tokio = { version = "1.43", features = ["full"] }
 # Vector databases - LanceDB is default (embedded, stable), Qdrant is optional (external)
-lancedb = "0.27.2"
+lancedb = "0.38.0"
 arrow-array = "57.3"
 arrow-schema = "57.3"
 futures = "0.3"
