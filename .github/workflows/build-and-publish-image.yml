@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Some tests (e.g. git_indexing) search the actual git history of this checkout - a
           # shallow clone leaves only 1 commit and makes those tests fail spuriously.
