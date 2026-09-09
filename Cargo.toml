@@ -69,7 +69,7 @@ tree-sitter-php = "0.24"
 # CLI and configuration
 clap = { version = "4", features = ["derive", "env"] }
 thiserror = "2.0"
-toml = "0.8"
+toml = "1.1"
 # PDF processing
 pdf-extract = "0.7"
 # Performance
