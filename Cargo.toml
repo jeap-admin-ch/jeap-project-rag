@@ -71,7 +71,7 @@ clap = { version = "4", features = ["derive", "env"] }
 thiserror = "2.0"
 toml = "0.8"
 # PDF processing
-pdf-extract = "0.7"
+pdf-extract = "0.12"
 # Performance
 rayon = "1.10"
 # Async utilities for cancellation
