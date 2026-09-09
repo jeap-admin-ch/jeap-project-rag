@@ -37,7 +37,7 @@ qdrant-client = { version = "1.15", optional = true }
 # GCC version, since the binary itself is fixed. "ort-load-dynamic" instead loads ONNX Runtime at
 # runtime via dlopen (ORT_DYLIB_PATH, see Dockerfile), sidestepping the link-time ABI mismatch
 # entirely. hf-hub-native-tls/image-models are the other two defaults, kept as before.
-fastembed = { version = "5.1", default-features = false, features = ["ort-load-dynamic", "hf-hub-native-tls", "image-models"] }
+fastembed = { version = "6.0", default-features = false, features = ["ort-load-dynamic", "hf-hub-native-tls", "image-models"] }
 tantivy = "0.22"
 git2 = "0.19"
 anyhow = "1.0"
