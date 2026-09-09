@@ -28,7 +28,7 @@ tokio = { version = "1.43", features = ["full"] }
 # Vector databases - LanceDB is default (embedded, stable), Qdrant is optional (external)
 lancedb = "0.27.2"
 arrow-array = "57.3"
-arrow-schema = "57.3"
+arrow-schema = "59.3"
 futures = "0.3"
 qdrant-client = { version = "1.15", optional = true }
 # default-features off: the default "ort-download-binaries-native-tls" statically links a
