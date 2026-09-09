@@ -1,0 +1,12 @@
+# CVE-2026-42559 (rmcp, HIGH, fixed in 1.4.0): DNS rebinding vulnerability in rmcp's
+# Streamable HTTP server transport. Confirmed against rmcp's own Cargo.toml
+# (github.com/modelcontextprotocol/rust-sdk) that the vulnerable code lives behind the
+# "transport-streamable-http-server" feature - this project only enables
+# ["server", "transport-io", "macros"] (stdio transport only, no HTTP server transport at
+# all), so that code is not compiled into this binary. Trivy's dependency scan flags the
+# crate version regardless of which cargo features are enabled; it does not do
+# feature-flag-aware reachability analysis.
+# Revisit and drop this line if the "transport-streamable-http-server" (or
+# "transport-streamable-http-server-session") feature is ever enabled for rmcp, or once
+# rmcp is bumped to >=1.4.0 anyway (a real migration given the 0.8->1.x jump, not a quick patch).
+CVE-2026-42559

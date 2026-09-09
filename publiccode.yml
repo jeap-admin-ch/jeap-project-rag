@@ -1,0 +1,42 @@
+publiccodeYmlVersion: 0.5.0
+name: jeap-project-rag
+applicationSuite: jEAP
+softwareVersion: 0.1.0
+releaseDate: 2026-09-04
+url: "https://github.com/jeap-admin-ch/jeap-project-rag.git"
+landingURL: "https://github.com/jeap-admin-ch/jeap"
+platforms:
+  - linux
+  - windows
+  - mac
+categories:
+  - application-development
+developmentStatus: stable
+softwareType: standalone/backend
+organisation:
+  uri: https://ld.admin.ch/office/V.1.7
+  name: Federal Office of Information Technology, Systems and Telecommunication
+description:
+  en:
+    localisedName: jeap-project-rag
+    shortDescription: A Rust-based MCP server providing RAG capabilities for understanding the jEAP codebase
+    longDescription: >
+      jeap-project-rag is a Rust-based Model Context Protocol (MCP) server that gives AI assistants
+      Retrieval-Augmented Generation (RAG) capabilities for understanding the jEAP codebase: it creates semantic
+      embeddings of code files and stores them in a local vector database for fast, targeted search. This
+      repository packages the upstream open-source project-rag server (github.com/Brainwires/project-rag) for
+      use within the jEAP platform.
+    features:
+      - Semantic search over large codebases via local vector embeddings
+      - MCP server usable by AI coding assistants
+legal:
+  license: MIT
+maintenance:
+  type: internal
+  contacts:
+    - name: Federal Office of Information Technology, Systems and Telecommunication FOITT
+      email: jeap-community@bit.admin.ch
+localisation:
+  localisationReady: false
+  availableLanguages:
+    - en
