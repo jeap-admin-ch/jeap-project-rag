@@ -22,7 +22,7 @@ exclude = [
 ]
 
 [dependencies]
-rmcp = { version = "0.8", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "3.2", features = ["server", "transport-io", "macros"] }
 schemars = "1.0"
 tokio = { version = "1.43", features = ["full"] }
 # Vector databases - LanceDB is default (embedded, stable), Qdrant is optional (external)
