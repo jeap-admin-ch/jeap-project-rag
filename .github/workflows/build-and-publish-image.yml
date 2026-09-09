@@ -1,0 +1,136 @@
+name: Build and publish project-rag image
+
+on:
+  push:
+    branches: [ "main", "feature/**" ]
+  # Without this, PR branches (Dependabot's included - "dependabot/cargo/*" matches neither
+  # "main" nor "feature/**" above) never get a CI run at all, so a PR's mergeable/green status
+  # means nothing. "pull_request", not "pull_request_target": this runs untrusted PR code
+  # (cargo build scripts, tests), so it must run with the PR's own restricted token/secrets,
+  # not the base branch's.
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Some tests (e.g. git_indexing) search the actual git history of this checkout - a
+          # shallow clone leaves only 1 commit and makes those tests fail spuriously.
+          fetch-depth: 0
+
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler pkg-config libssl-dev
+
+      # fastembed/ort is built with the "ort-load-dynamic" feature (see Cargo.toml), which loads
+      # ONNX Runtime at runtime via dlopen instead of statically linking a prebuilt binary at build
+      # time - avoids a libstdc++ ABI mismatch that broke the Docker build. That means this native
+      # (non-Docker) build/test step needs the same libonnxruntime.so + ORT_DYLIB_PATH the
+      # Dockerfile sets up, or ort's environment never initializes and its exit-time cleanup
+      # aborts the whole test binary (SIGABRT in ort::environment::release_env_on_exit).
+      - name: Install ONNX Runtime shared library
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/onnxruntime.tgz \
+            https://github.com/microsoft/onnxruntime/releases/download/v1.28.0/onnxruntime-linux-x64-1.28.0.tgz
+          tar -xzf /tmp/onnxruntime.tgz -C /tmp
+          sudo cp -P /tmp/onnxruntime-linux-x64-1.28.0/lib/libonnxruntime.so* /usr/local/lib/
+          sudo ldconfig
+          rm -rf /tmp/onnxruntime.tgz /tmp/onnxruntime-linux-x64-1.28.0
+          echo "ORT_DYLIB_PATH=/usr/local/lib/libonnxruntime.so" >> "$GITHUB_ENV"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build output
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # No standalone "cargo build --release" here: it would just be a second, redundant
+      # release-mode compile of this dependency-heavy crate (lancedb, arrow, tantivy, a dozen
+      # tree-sitter grammars, onnxruntime...) on top of the one "cargo test --lib" already does
+      # in debug mode below, and on top of the one the Docker build does in its own container.
+      # Correctness of release mode is validated by the Docker build itself; this step only
+      # needs to prove the code compiles and the tests pass, which debug mode does just as well
+      # (and faster).
+      - name: Cargo test
+        run: cargo test --lib
+
+      # Report-only: this is a vendored upstream project (Brainwires/project-rag), so pre-existing
+      # clippy warnings aren't necessarily ours to fix on this workflow's first run.
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features || true
+
+      - name: Run Trivy Security Scan
+        # Pinned - @master is a moving target and has broken before (tried to resolve a
+        # nonexistent Trivy binary release tag).
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'repo'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln,secret,misconfig'
+
+      # Matches the tag shape the existing Jenkinsfile produces (bit/jeap-project-rag), so
+      # downstream Dockerfiles pinning a specific tag keep working either way it got built.
+      - name: Compute image tag
+        id: tag
+        run: |
+          set -euo pipefail
+          version=$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')
+          timestamp=$(date -u +%Y%m%d%H%M%S)
+          echo "tag=${version}-al2023-${timestamp}" >> "$GITHUB_OUTPUT"
+
+      # The default "docker" buildx driver can't export a build cache at all (any backend,
+      # not just gha) - "Cache export is not supported for the docker driver." Only the
+      # docker-container driver this action sets up supports cache-to/cache-from.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          # Push only on main; feature branches build only
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
+            ${{ github.ref == 'refs/heads/main' && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
+          # GitHub Actions-backed layer cache: without this every push recompiles the entire
+          # crate from scratch inside Docker (~20+ min). Cached layers let unchanged
+          # dependencies (and, with a Dockerfile cache mount, unchanged incremental build state)
+          # be reused across runs instead of rebuilt every time.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

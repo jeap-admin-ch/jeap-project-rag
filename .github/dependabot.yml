@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # Rust dependencies (Cargo.toml / Cargo.lock)
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Patch/minor bumps are combined into one PR - low risk, reviewed together. Major bumps
+      # are deliberately left out of the group (each gets its own PR): a major version jump in
+      # a core dependency (the MCP SDK, the embedding library, the vector DB) can be a breaking
+      # API change and deserves its own review, not to be buried in a batch.
+      cargo-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # Actions referenced by the workflows in .github/workflows/
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      # CI tooling, not application code - a bad bump here fails loudly on the next push rather
+      # than silently shipping something broken, so major/minor/patch are all fine to batch.
+      github-actions:
+        patterns: ["*"]
