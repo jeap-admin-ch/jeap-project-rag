@@ -81,7 +81,7 @@ fs2 = "0.4"
 
 [dev-dependencies]
 tempfile = "3.0"
-criterion = { version = "0.5", features = ["async_tokio"] }
+criterion = { version = "0.8", features = ["async_tokio"] }
 filetime = "0.2"
 
 [build-dependencies]
