@@ -12,7 +12,7 @@ Dockerfile
 .dockerignore
 
 # CI
-Jenkinsfile
+.github/
 
 # Docs (not needed for build)
 docs/
