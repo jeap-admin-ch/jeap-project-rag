@@ -45,7 +45,7 @@ This MCP server enables AI assistants to efficiently search and understand large
 - [Status, limitations & roadmap](docs/status.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Deployment](docs/deployment.md)
-- [Architecture decision records](docs/adr/)
+- [Architecture decision records](docs/adr/README.md)
 
 ## Prerequisites
 
@@ -149,13 +149,13 @@ Contributions welcome! Please ensure:
 3. **Commits**: clear, descriptive messages; one logical change per commit; reference issues where
    applicable.
 
-See [docs/](docs/) for build/test commands and architecture details.
+See the [Documentation](#documentation) section above for build/test commands and architecture details.
 
 ## Support
 
 - **Issues**: https://github.com/Brainwires/project-rag/issues
-- **Documentation**: See [docs/](docs/) for deployment, troubleshooting, and slash commands
-- **Architecture**: See [docs/adr/](docs/adr/) for architecture decision records
+- **Documentation**: See the [Documentation](#documentation) section above for deployment, troubleshooting, and slash commands
+- **Architecture**: See [docs/adr/](docs/adr/README.md) for architecture decision records
 
 ## Acknowledgments
 
