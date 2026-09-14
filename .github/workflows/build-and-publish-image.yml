@@ -124,6 +124,14 @@ jobs:
           platforms: linux/amd64
           # Push only on main; feature branches build only
           push: ${{ github.ref == 'refs/heads/main' }}
+          # buildx defaults provenance to true, which wraps even this single-platform push in an
+          # OCI index (image manifest + a separate attestation-manifest child). cleanup-images.yml
+          # (actions/delete-package-versions, min-versions-to-keep: 3) counts each of those as its
+          # own "version" with no idea they're referenced by the `latest` index - the real image
+          # manifest can fall outside the kept window and get deleted while `latest` still points
+          # at it, leaving `latest` dangling (confirmed happening: GHCR 404s on the digest `latest`
+          # currently references). Disabling provenance keeps this a single real manifest per push.
+          provenance: false
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
             ${{ github.ref == 'refs/heads/main' && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
