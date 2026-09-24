@@ -1,7 +1,7 @@
 // Minimal test to isolate the issue
 use rmcp::{
     handler::server::{ServerHandler, tool::ToolRouter, wrapper::Parameters},
-    model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo},
+    model::{Implementation, ServerCapabilities, ServerConfig},
     service::ServiceExt,
     tool, tool_handler, tool_router,
 };
@@ -27,28 +27,15 @@ impl TestServer {
     }
 
     #[tool(description = "Test tool")]
-    async fn test_tool(
-        &self,
-        Parameters(req): Parameters<TestRequest>,
-    ) -> Result<String, String> {
+    async fn test_tool(&self, Parameters(req): Parameters<TestRequest>) -> Result<String, String> {
         Ok(req.value)
     }
 }
 
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for TestServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::default(),
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            server_info: Implementation {
-                name: "test".into(),
-                title: Some("Test".into()),
-                version: "0.1.0".into(),
-                icons: None,
-                website_url: None,
-            },
-            instructions: None,
-        }
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new("test", "0.1.0").with_title("Test"))
     }
 }
