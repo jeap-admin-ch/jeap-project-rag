@@ -6,9 +6,7 @@ use rmcp::{
     ErrorData as McpError, Peer, RoleServer, ServerHandler, ServiceExt,
     handler::server::{router::prompt::PromptRouter, tool::ToolRouter, wrapper::Parameters},
     model::*,
-    prompt, prompt_handler, prompt_router,
-    service::RequestContext,
-    tool, tool_handler, tool_router,
+    prompt, prompt_handler, prompt_router, tool, tool_handler, tool_router,
 };
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
@@ -110,7 +108,7 @@ impl RagMcpServer {
     )]
     async fn index_codebase(
         &self,
-        meta: Meta,
+        meta: RequestMetaObject,
         peer: Peer<RoleServer>,
         Parameters(req): Parameters<IndexRequest>,
     ) -> Result<String, String> {
@@ -225,7 +223,9 @@ impl RagMcpServer {
         serde_json::to_string_pretty(&response).map_err(|e| format!("Serialization failed: {}", e))
     }
 
-    #[tool(description = "Find the definition of a symbol at a given file location (line and column)")]
+    #[tool(
+        description = "Find the definition of a symbol at a given file location (line and column)"
+    )]
     async fn find_definition(
         &self,
         Parameters(req): Parameters<FindDefinitionRequest>,
@@ -259,7 +259,9 @@ impl RagMcpServer {
         serde_json::to_string_pretty(&response).map_err(|e| format!("Serialization failed: {}", e))
     }
 
-    #[tool(description = "Get the call graph for a function at a given file location (callers and callees)")]
+    #[tool(
+        description = "Get the call graph for a function at a given file location (callers and callees)"
+    )]
     async fn get_call_graph(
         &self,
         Parameters(req): Parameters<GetCallGraphRequest>,
@@ -291,20 +293,17 @@ impl RagMcpServer {
         let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
 
         let messages = vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             format!(
                 "Please index the codebase at path: '{}'. This will automatically perform a full index if this is the first time, or an incremental update if the codebase has been indexed before.",
                 path
             ),
         )];
 
-        Ok(GetPromptResult {
-            description: Some(format!(
-                "Index codebase at {} (auto-detects full/incremental)",
-                path
-            )),
-            messages,
-        })
+        Ok(GetPromptResult::new(messages).with_description(format!(
+            "Index codebase at {} (auto-detects full/incremental)",
+            path
+        )))
     }
 
     #[prompt(
@@ -318,7 +317,7 @@ impl RagMcpServer {
         let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
 
         Ok(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             format!("Please search the codebase for: {}", query),
         )])
     }
@@ -329,7 +328,7 @@ impl RagMcpServer {
     )]
     async fn stats_prompt(&self) -> Vec<PromptMessage> {
         vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             "Please get statistics about the indexed codebase.",
         )]
     }
@@ -340,7 +339,7 @@ impl RagMcpServer {
     )]
     async fn clear_prompt(&self) -> Vec<PromptMessage> {
         vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             "Please clear all indexed data from the vector database.",
         )]
     }
@@ -356,7 +355,7 @@ impl RagMcpServer {
         let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
 
         Ok(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             format!("Please perform an advanced search for: {}", query),
         )])
     }
@@ -373,7 +372,7 @@ impl RagMcpServer {
         let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
 
         Ok(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             format!(
                 "Please search git commit history at path '{}' for: {}. This will automatically index commits as needed.",
                 path, query
@@ -394,7 +393,7 @@ impl RagMcpServer {
         let column = args.get("column").and_then(|v| v.as_u64()).unwrap_or(0);
 
         Ok(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             format!(
                 "Please find the definition of the symbol at file '{}', line {}, column {}.",
                 file, line, column
@@ -415,7 +414,7 @@ impl RagMcpServer {
         let column = args.get("column").and_then(|v| v.as_u64()).unwrap_or(0);
 
         Ok(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             format!(
                 "Please find all references to the symbol at file '{}', line {}, column {}.",
                 file, line, column
@@ -436,7 +435,7 @@ impl RagMcpServer {
         let column = args.get("column").and_then(|v| v.as_u64()).unwrap_or(0);
 
         Ok(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             format!(
                 "Please get the call graph for the function at file '{}', line {}, column {}. Show what calls this function and what it calls.",
                 file, line, column
@@ -446,29 +445,24 @@ impl RagMcpServer {
 }
 
 #[tool_handler(router = self.tool_router)]
-#[prompt_handler]
+#[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for RagMcpServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::default(),
-            capabilities: ServerCapabilities::builder()
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(
+            ServerCapabilities::builder()
                 .enable_tools()
                 .enable_prompts()
                 .build(),
-            server_info: Implementation {
-                name: "project".into(),
-                title: Some("Project RAG - Code Understanding with Semantic Search".into()),
-                version: env!("CARGO_PKG_VERSION").into(),
-                icons: None,
-                website_url: None,
-            },
-            instructions: Some(
-                "RAG-based codebase indexing and semantic search. \
+        )
+        .with_server_info(
+            Implementation::new("project", env!("CARGO_PKG_VERSION"))
+                .with_title("Project RAG - Code Understanding with Semantic Search"),
+        )
+        .with_instructions(
+            "RAG-based codebase indexing and semantic search. \
                 Use index_codebase to create embeddings (automatically performs full or incremental indexing), \
                 query_codebase to search, and search_by_filters for advanced queries."
-                    .into(),
-            ),
-        }
+        )
     }
 }
 

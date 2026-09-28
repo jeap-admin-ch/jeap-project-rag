@@ -144,13 +144,20 @@ jobs:
 
   notify-ms-teams:
     needs: build-and-push-image
-    # Only for main - a failing PR/Dependabot run is already visible in its own checks, no need
-    # to page anyone for an unreviewed branch.
-    if: always() && github.ref == 'refs/heads/main' && needs.build-and-push-image.result == 'failure'
+    # Notify for main (a real regression on the trunk) and for Dependabot PR branches (a failing
+    # PR/Dependabot run is otherwise easy to miss since no one reviews it proactively). Other
+    # PR/branch runs are already visible in their own checks, no need to page anyone for those.
+    if: >
+      always() && needs.build-and-push-image.result == 'failure' &&
+      (github.ref == 'refs/heads/main' ||
+       (github.event_name == 'pull_request' && startsWith(github.head_ref, 'dependabot/')))
     runs-on: ubuntu-latest
     steps:
       - name: Notify Microsoft Teams of build failure
         env:
+          # Dependabot-triggered runs don't get repository Actions secrets, only Dependabot
+          # secrets - so MS_TEAMS_WEBHOOK must also be configured as a Dependabot secret
+          # (Settings > Secrets and variables > Dependabot) for this to fire on those runs.
           MS_TEAMS_WEBHOOK: ${{ secrets.MS_TEAMS_WEBHOOK }}
         run: |
           if [ -z "$MS_TEAMS_WEBHOOK" ]; then
@@ -164,7 +171,7 @@ jobs:
             --arg workflow "${{ github.workflow }}" \
             --arg project "${{ github.repository }}" \
             --arg repository "${{ github.repository }}" \
-            --arg branch "${{ github.ref_name }}" \
+            --arg branch "${{ github.head_ref || github.ref_name }}" \
             --arg commit "${{ github.sha }}" \
             --arg actor "${{ github.actor }}" \
             --arg runId "${{ github.run_id }}" \

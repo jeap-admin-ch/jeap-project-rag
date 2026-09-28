@@ -126,17 +126,16 @@ async fn generate_embeddings_with_cancellation(
             let progress = progress_start
                 + ((batch_idx + 1) as f64 / total_batches as f64) * (progress_end - progress_start);
             let _ = peer
-                .notify_progress(ProgressNotificationParam {
-                    progress_token: token.clone(),
-                    progress,
-                    total: Some(100.0),
-                    message: Some(format!(
-                        "Generating embeddings... {}/{} batches ({} chunks)",
-                        batch_idx + 1,
-                        total_batches,
-                        chunks_processed
-                    )),
-                })
+                .notify_progress(
+                    ProgressNotificationParam::new(token.clone(), progress)
+                        .with_total(100.0)
+                        .with_message(format!(
+                            "Generating embeddings... {}/{} batches ({} chunks)",
+                            batch_idx + 1,
+                            total_batches,
+                            chunks_processed
+                        )),
+                )
                 .await;
         }
     }
@@ -167,12 +166,11 @@ pub async fn do_index(
     // Send initial progress
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 0.0,
-                total: Some(100.0),
-                message: Some("Starting file walk...".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 0.0)
+                    .with_total(100.0)
+                    .with_message("Starting file walk..."),
+            )
             .await;
     }
 
@@ -206,12 +204,11 @@ pub async fn do_index(
     // Send progress after file walk
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 20.0,
-                total: Some(100.0),
-                message: Some(format!("Found {} files, chunking...", files_indexed)),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 20.0)
+                    .with_total(100.0)
+                    .with_message(format!("Found {} files, chunking...", files_indexed)),
+            )
             .await;
     }
 
@@ -227,15 +224,14 @@ pub async fn do_index(
     // Send progress after chunking
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 40.0,
-                total: Some(100.0),
-                message: Some(format!(
-                    "Created {} chunks, generating embeddings...",
-                    chunks_created
-                )),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 40.0)
+                    .with_total(100.0)
+                    .with_message(format!(
+                        "Created {} chunks, generating embeddings...",
+                        chunks_created
+                    )),
+            )
             .await;
     }
 
@@ -274,15 +270,14 @@ pub async fn do_index(
     // Send progress before storing
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 85.0,
-                total: Some(100.0),
-                message: Some(format!(
-                    "Storing {} embeddings in database...",
-                    embeddings_generated
-                )),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 85.0)
+                    .with_total(100.0)
+                    .with_message(format!(
+                        "Storing {} embeddings in database...",
+                        embeddings_generated
+                    )),
+            )
             .await;
     }
 
@@ -323,12 +318,11 @@ pub async fn do_index(
     // Send progress before saving cache
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 95.0,
-                total: Some(100.0),
-                message: Some("Saving cache...".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 95.0)
+                    .with_total(100.0)
+                    .with_message("Saving cache..."),
+            )
             .await;
     }
 
@@ -349,12 +343,11 @@ pub async fn do_index(
     // Send progress before flush
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 98.0,
-                total: Some(100.0),
-                message: Some("Flushing index to disk...".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 98.0)
+                    .with_total(100.0)
+                    .with_message("Flushing index to disk..."),
+            )
             .await;
     }
 
@@ -368,12 +361,11 @@ pub async fn do_index(
     // Send final completion progress
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 100.0,
-                total: Some(100.0),
-                message: Some("Indexing complete!".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 100.0)
+                    .with_total(100.0)
+                    .with_message("Indexing complete!"),
+            )
             .await;
     }
 
@@ -407,12 +399,11 @@ pub async fn do_incremental_update(
     // Send initial progress
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 0.0,
-                total: Some(100.0),
-                message: Some("Checking for changes...".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 0.0)
+                    .with_total(100.0)
+                    .with_message("Checking for changes..."),
+            )
             .await;
     }
 
@@ -424,15 +415,14 @@ pub async fn do_incremental_update(
     // Send progress after reading cache
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 10.0,
-                total: Some(100.0),
-                message: Some(format!(
-                    "Found {} cached files, scanning directory...",
-                    existing_hashes.len()
-                )),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 10.0)
+                    .with_total(100.0)
+                    .with_message(format!(
+                        "Found {} cached files, scanning directory...",
+                        existing_hashes.len()
+                    )),
+            )
             .await;
     }
 
@@ -470,15 +460,14 @@ pub async fn do_incremental_update(
     // Send progress after file walk
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 30.0,
-                total: Some(100.0),
-                message: Some(format!(
-                    "Found {} files, comparing with cache...",
-                    current_files.len()
-                )),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 30.0)
+                    .with_total(100.0)
+                    .with_message(format!(
+                        "Found {} files, comparing with cache...",
+                        current_files.len()
+                    )),
+            )
             .await;
     }
 
@@ -522,15 +511,14 @@ pub async fn do_incremental_update(
     // Send progress after identifying changes
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 50.0,
-                total: Some(100.0),
-                message: Some(format!(
-                    "Processing {} changed files...",
-                    files_to_index.len()
-                )),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 50.0)
+                    .with_total(100.0)
+                    .with_message(format!(
+                        "Processing {} changed files...",
+                        files_to_index.len()
+                    )),
+            )
             .await;
     }
 
@@ -548,15 +536,14 @@ pub async fn do_incremental_update(
         // Send progress after chunking
         if let (Some(peer), Some(token)) = (&peer, &progress_token) {
             let _ = peer
-                .notify_progress(ProgressNotificationParam {
-                    progress_token: token.clone(),
-                    progress: 60.0,
-                    total: Some(100.0),
-                    message: Some(format!(
-                        "Created {} chunks, generating embeddings...",
-                        chunks_modified
-                    )),
-                })
+                .notify_progress(
+                    ProgressNotificationParam::new(token.clone(), 60.0)
+                        .with_total(100.0)
+                        .with_message(format!(
+                            "Created {} chunks, generating embeddings...",
+                            chunks_modified
+                        )),
+                )
                 .await;
         }
 
@@ -579,12 +566,11 @@ pub async fn do_incremental_update(
         // Send progress before storing
         if let (Some(peer), Some(token)) = (&peer, &progress_token) {
             let _ = peer
-                .notify_progress(ProgressNotificationParam {
-                    progress_token: token.clone(),
-                    progress: 90.0,
-                    total: Some(100.0),
-                    message: Some(format!("Storing {} embeddings...", all_embeddings.len())),
-                })
+                .notify_progress(
+                    ProgressNotificationParam::new(token.clone(), 90.0)
+                        .with_total(100.0)
+                        .with_message(format!("Storing {} embeddings...", all_embeddings.len())),
+                )
                 .await;
         }
 
@@ -623,12 +609,11 @@ pub async fn do_incremental_update(
     // Send progress before saving cache
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 95.0,
-                total: Some(100.0),
-                message: Some("Saving cache...".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 95.0)
+                    .with_total(100.0)
+                    .with_message("Saving cache..."),
+            )
             .await;
     }
 
@@ -645,12 +630,11 @@ pub async fn do_incremental_update(
     // Send progress before flush
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 98.0,
-                total: Some(100.0),
-                message: Some("Flushing index to disk...".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 98.0)
+                    .with_total(100.0)
+                    .with_message("Flushing index to disk..."),
+            )
             .await;
     }
 
@@ -664,12 +648,11 @@ pub async fn do_incremental_update(
     // Send final completion progress
     if let (Some(peer), Some(token)) = (&peer, &progress_token) {
         let _ = peer
-            .notify_progress(ProgressNotificationParam {
-                progress_token: token.clone(),
-                progress: 100.0,
-                total: Some(100.0),
-                message: Some("Incremental update complete!".into()),
-            })
+            .notify_progress(
+                ProgressNotificationParam::new(token.clone(), 100.0)
+                    .with_total(100.0)
+                    .with_message("Incremental update complete!"),
+            )
             .await;
     }
 
@@ -714,14 +697,11 @@ pub async fn do_index_smart(
             // Send progress notification if we have a peer
             if let (Some(peer), Some(token)) = (&peer, &progress_token) {
                 let _ = peer
-                    .notify_progress(ProgressNotificationParam {
-                        progress_token: token.clone(),
-                        progress: 0.0,
-                        total: Some(100.0),
-                        message: Some(
-                            "Waiting for existing indexing operation to complete...".into(),
-                        ),
-                    })
+                    .notify_progress(
+                        ProgressNotificationParam::new(token.clone(), 0.0)
+                            .with_total(100.0)
+                            .with_message("Waiting for existing indexing operation to complete..."),
+                    )
                     .await;
             }
 
@@ -750,12 +730,11 @@ pub async fn do_index_smart(
             // Send progress notification if we have a peer
             if let (Some(peer), Some(token)) = (&peer, &progress_token) {
                 let _ = peer
-                    .notify_progress(ProgressNotificationParam {
-                        progress_token: token.clone(),
-                        progress: 0.0,
-                        total: Some(100.0),
-                        message: Some("Waiting for another process to finish indexing...".into()),
-                    })
+                    .notify_progress(
+                        ProgressNotificationParam::new(token.clone(), 0.0)
+                            .with_total(100.0)
+                            .with_message("Waiting for another process to finish indexing..."),
+                    )
                     .await;
             }
 
@@ -998,15 +977,14 @@ async fn do_index_smart_inner(
                 // Send progress notification about dirty state
                 if let (Some(peer), Some(token)) = (&peer, &progress_token) {
                     let _ = peer
-                        .notify_progress(ProgressNotificationParam {
-                            progress_token: token.clone(),
-                            progress: 0.0,
-                            total: Some(100.0),
-                            message: Some(format!(
-                                "Corrupted index detected ({}), clearing...",
-                                reason
-                            )),
-                        })
+                        .notify_progress(
+                            ProgressNotificationParam::new(token.clone(), 0.0)
+                                .with_total(100.0)
+                                .with_message(format!(
+                                    "Corrupted index detected ({}), clearing...",
+                                    reason
+                                )),
+                        )
                         .await;
                 }
 
@@ -1039,15 +1017,14 @@ async fn do_index_smart_inner(
                 // Send progress notification
                 if let (Some(peer), Some(token)) = (&peer, &progress_token) {
                     let _ = peer
-                        .notify_progress(ProgressNotificationParam {
-                            progress_token: token.clone(),
-                            progress: 0.0,
-                            total: Some(100.0),
-                            message: Some(format!(
-                                "Stale dirty flag detected (age: {}s), clearing...",
-                                age_secs
-                            )),
-                        })
+                        .notify_progress(
+                            ProgressNotificationParam::new(token.clone(), 0.0)
+                                .with_total(100.0)
+                                .with_message(format!(
+                                    "Stale dirty flag detected (age: {}s), clearing...",
+                                    age_secs
+                                )),
+                        )
                         .await;
                 }
 
@@ -1077,14 +1054,13 @@ async fn do_index_smart_inner(
                 // Send progress notification
                 if let (Some(peer), Some(token)) = (&peer, &progress_token) {
                     let _ = peer
-                        .notify_progress(ProgressNotificationParam {
-                            progress_token: token.clone(),
-                            progress: 0.0,
-                            total: Some(100.0),
-                            message: Some(
-                                "Index appears complete, clearing stale dirty flag...".into(),
-                            ),
-                        })
+                        .notify_progress(
+                            ProgressNotificationParam::new(token.clone(), 0.0)
+                                .with_total(100.0)
+                                .with_message(
+                                    "Index appears complete, clearing stale dirty flag...",
+                                ),
+                        )
                         .await;
                 }
 
