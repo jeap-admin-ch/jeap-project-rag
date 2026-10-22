@@ -4,9 +4,33 @@ use fastembed::{
     EmbeddingModel, InitOptions, InitOptionsUserDefined, TextEmbedding, TokenizerFiles,
     UserDefinedEmbeddingModel,
 };
+use ort::environment::Environment;
 use std::fs;
 use std::path::Path;
-use std::sync::{Mutex, RwLock};
+use std::sync::{Mutex, OnceLock, RwLock};
+
+/// ONNX Runtime only allows one `Environment` to be built per process. fastembed no longer
+/// creates one implicitly for each model, so every `TextEmbedding::try_new*` call in this
+/// process must share the single instance built here.
+static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
+static ENVIRONMENT_INIT_LOCK: Mutex<()> = Mutex::new(());
+
+fn shared_environment() -> Result<Environment> {
+    if let Some(env) = ENVIRONMENT.get() {
+        return Ok(env.clone());
+    }
+
+    let _guard = ENVIRONMENT_INIT_LOCK.lock().unwrap();
+    if let Some(env) = ENVIRONMENT.get() {
+        return Ok(env.clone());
+    }
+
+    let env = ort::init()
+        .build()
+        .context("Failed to initialize ONNX Runtime environment")?;
+    let _ = ENVIRONMENT.set(env.clone());
+    Ok(env)
+}
 
 /// FastEmbed-based embedding provider using all-MiniLM-L6-v2
 ///
@@ -43,6 +67,7 @@ impl FastEmbedManager {
         let mut options = InitOptions::default();
         options.model_name = model;
         options.show_download_progress = true;
+        options.environment = Some(shared_environment()?);
 
         // Serialize initialization. fastembed's on-disk model cache uses a lock file while
         // downloading a model for the first time, and that lock acquisition fails fast rather
@@ -103,7 +128,7 @@ impl FastEmbedManager {
         };
 
         let user_model = UserDefinedEmbeddingModel::new(onnx_file, tokenizer_files);
-        let options = InitOptionsUserDefined::default();
+        let options = InitOptionsUserDefined::default().with_environment(shared_environment()?);
 
         let embedding_model = TextEmbedding::try_new_from_user_defined(user_model, options)
             .context("Failed to initialize FastEmbed model from local files")?;
