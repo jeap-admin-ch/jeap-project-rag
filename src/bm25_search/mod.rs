@@ -197,7 +197,7 @@ impl BM25Search {
 
         // Search with BM25
         let top_docs = searcher
-            .search(&query, &TopDocs::with_limit(limit))
+            .search(&query, &TopDocs::with_limit(limit).order_by_score())
             .context("Failed to execute search")?;
 
         let mut results = Vec::new();
