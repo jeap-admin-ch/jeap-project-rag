@@ -173,7 +173,6 @@ for (old_path, _) in old_hashes {
 - Implementation: `src/mcp_server/indexing.rs:523-560` (`do_index_smart`)
 - Cache implementation: `src/cache.rs`
 - Related: Hash calculation uses SHA-256 for reliability
-- Related ADR: [004-persistent-caching-strategy.md](004-persistent-caching-strategy.md) (if created)
 
 ## Date
 
